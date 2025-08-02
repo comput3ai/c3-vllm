@@ -60,6 +60,7 @@ docker run --gpus all \
 | `ENABLE_CHUNKED_PREFILL` | Enable chunked prefill for long prompts | `false` |
 | `ENFORCE_EAGER` | Disable CUDA graphs (may help with large models) | `false` |
 | `DISABLE_SLIDING_WINDOW` | Disable sliding window attention | `false` |
+| `VLLM_USE_V1` | Use vLLM V1 engine (set to 0 for V0 engine) | `1` |
 
 ### Tool Calling Support
 
@@ -298,7 +299,10 @@ GPU_MEMORY_UTILIZATION=0.90  # Can push higher on datacenter GPUs
 KV_CACHE_DTYPE=fp8           # Essential for large contexts
 ENABLE_CHUNKED_PREFILL=true  # Helps with long prompts
 TRUST_REMOTE_CODE=true       # Required for custom architectures
+# VLLM_USE_V1=0              # Uncomment for B200 GPUs if FP8 KV cache fails
 ```
+
+**Note**: If you encounter "TritonMLA V1 with FP8 KV cache not yet supported" errors on Blackwell (B200) GPUs, set `VLLM_USE_V1=0` to use the V0 engine which has better compatibility.
 
 ### Memory Estimation
 
