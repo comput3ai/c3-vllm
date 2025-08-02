@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   vllm:
-    container_name: vllm
+    container_name: c3-vllm
     image: ghcr.io/comput3ai/c3-vllm:latest
-    build: .
     env_file: .env
     volumes:
       - ./models:/models
