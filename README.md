@@ -56,11 +56,14 @@ docker run --gpus all \
 | `GPU_MEMORY_UTILIZATION` | Fraction of GPU memory to use (0.0-1.0) | `0.9` |
 | `MAX_NUM_SEQS` | Maximum sequences to process concurrently | `256` |
 | `MAX_NUM_BATCHED_TOKENS` | Maximum tokens per iteration | Auto |
+| `QUANTIZATION` | Quantization method (fp8, awq, gptq, etc.) | - |
 | `KV_CACHE_DTYPE` | KV cache data type (auto, fp8, fp8_e4m3, fp8_e5m2) | `auto` |
 | `ENABLE_CHUNKED_PREFILL` | Enable chunked prefill for long prompts | `false` |
 | `ENFORCE_EAGER` | Disable CUDA graphs (may help with large models) | `false` |
 | `DISABLE_SLIDING_WINDOW` | Disable sliding window attention | `false` |
 | `VLLM_USE_V1` | Use vLLM V1 engine (set to 0 for V0 engine) | `1` |
+| `DISTRIBUTED_EXECUTOR_BACKEND` | Backend for distributed execution (ray, mp) | - |
+| `PIPELINE_PARALLEL_SIZE` | Number of pipeline parallel ranks | - |
 
 ### Tool Calling Support
 
@@ -105,15 +108,18 @@ docker run --gpus all \
   ghcr.io/comput3ai/c3-vllm:latest
 ```
 
-#### Model with FP8 KV Cache
+#### Kimi-K2 with FP8 Quantization
 
 ```bash
 docker run --gpus all \
   -e MODEL_NAME=moonshotai/Kimi-K2-Instruct \
   -e SERVED_MODEL_NAME=kimi-k2 \
   -e TENSOR_PARALLEL_SIZE=8 \
-  -e KV_CACHE_DTYPE=fp8 \
-  -e MAX_MODEL_LEN=65536 \
+  -e QUANTIZATION=fp8 \
+  -e MAX_MODEL_LEN=131072 \
+  -e ENABLE_AUTO_TOOL_CHOICE=true \
+  -e TOOL_CALL_PARSER=kimi_k2 \
+  -e TRUST_REMOTE_CODE=true \
   -p 8080:8000 \
   ghcr.io/comput3ai/c3-vllm:latest
 ```
@@ -281,6 +287,7 @@ docker build -t c3-vllm .
 ### General Recommendations
 
 - **Tensor Parallelism**: Use `TENSOR_PARALLEL_SIZE` equal to your GPU count for large models
+- **Quantization**: Use `QUANTIZATION=fp8` for models with FP8 weights (e.g., Kimi-K2)
 - **KV Cache**: Enable `KV_CACHE_DTYPE=fp8` for 2x memory efficiency with minimal quality loss
 - **Context Length**: Set `MAX_MODEL_LEN` based on your GPU memory
 - **Batch Size**: Tune `MAX_NUM_BATCHED_TOKENS` for your workload
@@ -292,14 +299,15 @@ For models with 1T+ parameters and 128k context support:
 ```env
 # Recommended settings for 8xB200 or 8xH100
 TENSOR_PARALLEL_SIZE=8
-MAX_MODEL_LEN=65536          # Start conservatively, increase as needed
+MAX_MODEL_LEN=131072         # Full 128k context for Kimi-K2
 MAX_NUM_SEQS=256             # High concurrency
 MAX_NUM_BATCHED_TOKENS=32768 # Large batch for throughput
-GPU_MEMORY_UTILIZATION=0.90  # Can push higher on datacenter GPUs
-KV_CACHE_DTYPE=fp8           # Essential for large contexts
+GPU_MEMORY_UTILIZATION=0.95  # Can push higher on datacenter GPUs
+QUANTIZATION=fp8             # For FP8 models like Kimi-K2
 ENABLE_CHUNKED_PREFILL=true  # Helps with long prompts
 TRUST_REMOTE_CODE=true       # Required for custom architectures
-# VLLM_USE_V1=0              # Uncomment for B200 GPUs if FP8 KV cache fails
+ENABLE_AUTO_TOOL_CHOICE=true # For models with tool calling
+TOOL_CALL_PARSER=kimi_k2     # Model-specific parser
 ```
 
 **Note**: If you encounter "TritonMLA V1 with FP8 KV cache not yet supported" errors on Blackwell (B200) GPUs, set `VLLM_USE_V1=0` to use the V0 engine which has better compatibility.
