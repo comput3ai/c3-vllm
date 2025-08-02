@@ -71,6 +71,10 @@ if [ -n "${KV_CACHE_DTYPE}" ]; then
     VLLM_ARGS+=("--kv-cache-dtype" "${KV_CACHE_DTYPE}")
 fi
 
+if [ -n "${QUANTIZATION}" ]; then
+    VLLM_ARGS+=("--quantization" "${QUANTIZATION}")
+fi
+
 # Boolean flags - only add if explicitly set to true
 if [ "${TRUST_REMOTE_CODE}" = "true" ]; then
     VLLM_ARGS+=("--trust-remote-code")
