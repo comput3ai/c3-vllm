@@ -3,7 +3,7 @@ version: '3.8'
 services:
   vllm:
     container_name: vllm
-    image: vllm-kimi-k2:latest
+    image: ghcr.io/comput3ai/c3-vllm:latest
     build: .
     env_file: .env
     volumes:
