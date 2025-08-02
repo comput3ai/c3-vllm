@@ -75,6 +75,14 @@ if [ -n "${QUANTIZATION}" ]; then
     VLLM_ARGS+=("--quantization" "${QUANTIZATION}")
 fi
 
+if [ -n "${DISTRIBUTED_EXECUTOR_BACKEND}" ]; then
+    VLLM_ARGS+=("--distributed-executor-backend" "${DISTRIBUTED_EXECUTOR_BACKEND}")
+fi
+
+if [ -n "${PIPELINE_PARALLEL_SIZE}" ]; then
+    VLLM_ARGS+=("--pipeline-parallel-size" "${PIPELINE_PARALLEL_SIZE}")
+fi
+
 # Boolean flags - only add if explicitly set to true
 if [ "${TRUST_REMOTE_CODE}" = "true" ]; then
     VLLM_ARGS+=("--trust-remote-code")
