@@ -25,9 +25,9 @@ services:
       - vllm-network
 
   vllm:
-    container_name: vllm
-    image: vllm-kimi-k2:latest
-    build: .
+    image: ghcr.io/comput3ai/c3-vllm:latest
+    container_name: c3-vllm
+    restart: unless-stopped
     env_file: .env
     volumes:
       - ./models:/models
