@@ -22,6 +22,9 @@ RUN pip install triton --extra-index-url https://download.pytorch.org/whl/cu128
 # Note: vLLM includes FP8 quantization support for models like Kimi-K2
 RUN pip install vllm --extra-index-url https://download.pytorch.org/whl/cu128
 
+# Install bitsandbytes
+RUN pip install bitsandbytes --extra-index-url https://download.pytorch.org/whl/cu128
+
 # Install additional dependencies required by Kimi-K2 tokenizer
 RUN pip install --no-cache-dir blobfile tiktoken
 
