@@ -118,6 +118,20 @@ if [ -n "${API_KEY}" ]; then
     VLLM_ARGS+=("--api-key" "${API_KEY}")
 fi
 
+# Expert parallelism for MoE models
+if [ -n "${DATA_PARALLEL_SIZE}" ]; then
+    VLLM_ARGS+=("--data-parallel-size" "${DATA_PARALLEL_SIZE}")
+fi
+
+if [ "${ENABLE_EXPERT_PARALLEL}" = "true" ]; then
+    VLLM_ARGS+=("--enable-expert-parallel")
+fi
+
+# Reasoning parser for thinking models
+if [ -n "${REASONING_PARSER}" ]; then
+    VLLM_ARGS+=("--reasoning-parser" "${REASONING_PARSER}")
+fi
+
 # Don't pass --download-dir when using a local model path
 
 # Add any additional arguments passed to the container
