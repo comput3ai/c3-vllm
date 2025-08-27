@@ -113,6 +113,10 @@ if [ -n "${TOOL_CALL_PARSER}" ]; then
     VLLM_ARGS+=("--tool-call-parser" "${TOOL_CALL_PARSER}")
 fi
 
+if [ -n "${CHAT_TEMPLATE}" ]; then
+    VLLM_ARGS+=("--chat-template" "${CHAT_TEMPLATE}")
+fi
+
 # API key if set
 if [ -n "${API_KEY}" ]; then
     VLLM_ARGS+=("--api-key" "${API_KEY}")
