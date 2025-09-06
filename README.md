@@ -71,6 +71,7 @@ docker run --gpus all \
 |----------|-------------|---------|
 | `ENABLE_AUTO_TOOL_CHOICE` | Enable automatic tool choice | `false` |
 | `TOOL_CALL_PARSER` | Tool call parser to use (e.g., kimi_k2, hermes) | - |
+| `CHAT_TEMPLATE` | Custom chat template file path or URL (must be raw URL) | - |
 
 ### API Configuration
 
@@ -108,21 +109,44 @@ docker run --gpus all \
   ghcr.io/comput3ai/c3-vllm:latest
 ```
 
-#### Kimi-K2 with FP8 Quantization
+#### Kimi-K2-0905 with FP8 Quantization (256K Context)
 
 ```bash
 docker run --gpus all \
-  -e MODEL_NAME=moonshotai/Kimi-K2-Instruct \
+  -e MODEL_NAME=moonshotai/Kimi-K2-Instruct-0905 \
   -e SERVED_MODEL_NAME=kimi-k2 \
   -e TENSOR_PARALLEL_SIZE=8 \
   -e QUANTIZATION=fp8 \
-  -e MAX_MODEL_LEN=131072 \
+  -e MAX_MODEL_LEN=262144 \
   -e ENABLE_AUTO_TOOL_CHOICE=true \
   -e TOOL_CALL_PARSER=kimi_k2 \
   -e TRUST_REMOTE_CODE=true \
   -p 8080:8000 \
   ghcr.io/comput3ai/c3-vllm:latest
 ```
+
+#### Kimi-K2-0905 with Custom Upstream Chat Template
+
+To use the latest upstream chat template from HuggingFace:
+
+```bash
+docker run --gpus all \
+  -e MODEL_NAME=moonshotai/Kimi-K2-Instruct-0905 \
+  -e SERVED_MODEL_NAME=kimi-k2 \
+  -e TENSOR_PARALLEL_SIZE=8 \
+  -e QUANTIZATION=fp8 \
+  -e MAX_MODEL_LEN=262144 \
+  -e ENABLE_AUTO_TOOL_CHOICE=true \
+  -e TOOL_CALL_PARSER=kimi_k2 \
+  -e CHAT_TEMPLATE=https://huggingface.co/moonshotai/Kimi-K2-Instruct-0905/raw/main/chat_template.jinja \
+  -e TRUST_REMOTE_CODE=true \
+  -p 8080:8000 \
+  ghcr.io/comput3ai/c3-vllm:latest
+```
+
+**Important**: When using URLs for `CHAT_TEMPLATE`, ensure you use the **raw file URL**:
+- ✅ Correct: `https://huggingface.co/repo/model/raw/main/template.jinja`
+- ❌ Wrong: `https://huggingface.co/repo/model/blob/main/template.jinja`
 
 ### API Authentication
 
@@ -299,7 +323,7 @@ For models with 1T+ parameters and 128k context support:
 ```env
 # Recommended settings for 8xB200 or 8xH100
 TENSOR_PARALLEL_SIZE=8
-MAX_MODEL_LEN=131072         # Full 128k context for Kimi-K2
+MAX_MODEL_LEN=262144         # Full 256k context for Kimi-K2-0905
 MAX_NUM_SEQS=256             # High concurrency
 MAX_NUM_BATCHED_TOKENS=32768 # Large batch for throughput
 GPU_MEMORY_UTILIZATION=0.95  # Can push higher on datacenter GPUs
