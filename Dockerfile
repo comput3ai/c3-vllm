@@ -25,6 +25,11 @@ COPY download.py /app/download.py
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/download.py /app/entrypoint.sh
 
+# Remove existing kimi_k2_tool_parser files and copy our updated version
+RUN rm -f /usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/tool_parsers/kimi_k2_tool_parser.py \
+           /usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/tool_parsers/__pycache__/kimi_k2_tool_parser.cpython-312.pyc
+COPY kimi_k2_tool_parser.py /usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/tool_parsers/kimi_k2_tool_parser.py
+
 # Create examples directory for runtime chat template downloads
 RUN mkdir -p /app/examples
 
