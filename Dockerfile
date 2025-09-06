@@ -25,6 +25,9 @@ COPY download.py /app/download.py
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/download.py /app/entrypoint.sh
 
+# Create examples directory for runtime chat template downloads
+RUN mkdir -p /app/examples
+
 # Set environment variables for HuggingFace cache (if not already set)
 ENV HF_HOME=/root/.cache/huggingface
 ENV PYTHONUNBUFFERED=1

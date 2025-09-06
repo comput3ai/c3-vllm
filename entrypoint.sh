@@ -113,8 +113,20 @@ if [ -n "${TOOL_CALL_PARSER}" ]; then
     VLLM_ARGS+=("--tool-call-parser" "${TOOL_CALL_PARSER}")
 fi
 
+# Handle chat template - download if URL, otherwise use as path
 if [ -n "${CHAT_TEMPLATE}" ]; then
-    VLLM_ARGS+=("--chat-template" "${CHAT_TEMPLATE}")
+    if [[ "${CHAT_TEMPLATE}" =~ ^https?:// ]]; then
+        echo "Downloading chat template from URL: ${CHAT_TEMPLATE}"
+        wget -O /app/examples/chat_template.jinja "${CHAT_TEMPLATE}"
+        if [ $? -eq 0 ]; then
+            echo "Successfully downloaded chat template to /app/examples/chat_template.jinja"
+            VLLM_ARGS+=("--chat-template" "/app/examples/chat_template.jinja")
+        else
+            echo "Failed to download chat template from URL, proceeding without custom template"
+        fi
+    else
+        VLLM_ARGS+=("--chat-template" "${CHAT_TEMPLATE}")
+    fi
 fi
 
 # API key if set
