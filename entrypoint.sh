@@ -148,6 +148,60 @@ if [ -n "${REASONING_PARSER}" ]; then
     VLLM_ARGS+=("--reasoning-parser" "${REASONING_PARSER}")
 fi
 
+# Multi-node support
+if [ -n "${NODE_MASTER_IP}" ] && [ -n "${NODE_IP}" ]; then
+    echo "Multi-node mode detected"
+    echo "This node IP: ${NODE_IP}"
+    echo "Master node IP: ${NODE_MASTER_IP}"
+
+    # All nodes get data-parallel-address
+    VLLM_ARGS+=("--data-parallel-address" "${NODE_MASTER_IP}")
+
+    # Add RPC port if configured
+    if [ -n "${DATA_PARALLEL_RPC_PORT}" ]; then
+        VLLM_ARGS+=("--data-parallel-rpc-port" "${DATA_PARALLEL_RPC_PORT}")
+    fi
+
+    if [ "${NODE_IP}" != "${NODE_MASTER_IP}" ]; then
+        # Worker node configuration
+        echo "Configuring as worker node"
+        VLLM_ARGS+=("--headless")
+
+        # Calculate start rank: (node_num - 1) * 8
+        NODE_NUM=$(echo "${NODE_IP}" | cut -d'.' -f4)
+        START_RANK=$(( (NODE_NUM - 1) * 8 ))
+        VLLM_ARGS+=("--data-parallel-start-rank" "${START_RANK}")
+        echo "Worker start rank: ${START_RANK}"
+
+        # Wait for master node to be ready
+        echo "Waiting for master node at ${NODE_MASTER_IP} to be ready..."
+        MASTER_READY=false
+        RETRY_COUNT=0
+        MAX_RETRIES=60  # 5 minutes with 5s intervals
+
+        while [ "$MASTER_READY" = "false" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if nc -z "${NODE_MASTER_IP}" 8000 2>/dev/null; then
+                echo "Master node is ready!"
+                MASTER_READY=true
+            else
+                echo "Master not ready yet, waiting... (attempt $((RETRY_COUNT + 1))/${MAX_RETRIES})"
+                sleep 5
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+            fi
+        done
+
+        if [ "$MASTER_READY" = "false" ]; then
+            echo "Error: Master node did not become ready within timeout"
+            exit 1
+        fi
+    else
+        echo "Configuring as master node"
+    fi
+elif [ -n "${NODE_MASTER_IP}" ] || [ -n "${NODE_IP}" ]; then
+    echo "Error: Both NODE_MASTER_IP and NODE_IP must be set for multi-node, or neither"
+    exit 1
+fi
+
 # Don't pass --download-dir when using a local model path
 
 # Add any additional arguments passed to the container
