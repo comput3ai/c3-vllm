@@ -13,6 +13,7 @@ if [ -n "${DOWNLOAD_DIR}" ] && [ -n "${MODEL_NAME}" ]; then
     MODEL_DIR_NAME="${SERVED_MODEL_NAME:-${MODEL_NAME##*/}}"
     MODEL_PATH="${DOWNLOAD_DIR}/${MODEL_DIR_NAME}"
     
+    # Check if model exists and is complete
     if [ ! -d "${MODEL_PATH}" ] || [ -z "$(ls -A ${MODEL_PATH} 2>/dev/null)" ]; then
         echo "Model not found at ${MODEL_PATH}, downloading..."
         python3 /app/download.py \

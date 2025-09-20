@@ -88,13 +88,11 @@ def main():
         print(f"  Main Model File: {model_file}")
     print()
 
-    # Check if model already exists
-    if not args.force and output_path.exists() and model_file:
-        model_file_path = output_path / model_file
-        if model_file_path.exists():
-            print(f"Model already exists at {model_file_path}")
-            print("Use --force to re-download")
-            return
+    # Check if model already exists (if final directory exists, download is complete)
+    if not args.force and output_path.exists():
+        print(f"Model already exists at {output_path}")
+        print("Use --force to re-download")
+        return
 
     # Dry run mode
     if args.dry_run:
@@ -104,35 +102,61 @@ def main():
         print(f"  To: {output_path}")
         return
 
-    # Create output directory
-    output_path.mkdir(parents=True, exist_ok=True)
+    # Use atomic download approach
+    temp_path = output_path.with_suffix('.downloading')
+    final_path = output_path
 
-    # Download the model
+    # Create temp directory for atomic download
+    temp_path.mkdir(parents=True, exist_ok=True)
+
+    # Download the model to temp location
     try:
-        print(f"Downloading model from {model_repo}...")
+        print(f"Downloading model from {model_repo} to temporary location...")
+        print(f"Temp path: {temp_path}")
+
         snapshot_download(
             repo_id=model_repo,
-            local_dir=str(output_path),
+            local_dir=str(temp_path),
             allow_patterns=model_pattern.split(',') if model_pattern else None,
             token=hf_token
         )
 
-        print(f"\nDownload complete! Model saved to: {output_path}")
+        print(f"\nDownload successful! Verifying and moving to final location...")
 
         # Verify main model file exists if specified
         if model_file:
-            model_file_path = output_path / model_file
+            model_file_path = temp_path / model_file
             if not model_file_path.exists():
-                print(f"Warning: Expected model file {model_file} not found after download!")
-                print("Available files:")
-                for f in output_path.glob("*.gguf"):
-                    print(f"  {f.name}")
+                print(f"Error: Expected model file {model_file} not found after download!")
+                print("Available files in temp directory:")
+                for f in temp_path.glob("*"):
+                    if f.is_file():
+                        print(f"  {f.name} ({f.stat().st_size} bytes)")
+                print("Cleaning up temp directory...")
+                import shutil
+                shutil.rmtree(temp_path)
                 sys.exit(1)
             else:
                 print(f"Verified main model file: {model_file_path}")
 
+        # Atomic move: remove old directory if it exists, then move temp to final
+        if final_path.exists():
+            print(f"Removing incomplete download at {final_path}")
+            import shutil
+            shutil.rmtree(final_path)
+
+        print(f"Moving complete download from {temp_path} to {final_path}")
+        temp_path.rename(final_path)
+
+        print(f"\nDownload complete! Model saved to: {final_path}")
+
     except Exception as e:
         print(f"Error downloading model: {e}")
+        # Clean up temp directory on failure
+        if temp_path.exists():
+            print(f"Cleaning up temporary directory: {temp_path}")
+            import shutil
+            shutil.rmtree(temp_path)
         sys.exit(1)
 
 if __name__ == "__main__":
