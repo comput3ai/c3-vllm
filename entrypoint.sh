@@ -144,6 +144,23 @@ if [ "${ENABLE_EXPERT_PARALLEL}" = "true" ]; then
     VLLM_ARGS+=("--enable-expert-parallel")
 fi
 
+# Handle data parallel configuration directly from environment variables
+if [ -n "${DATA_PARALLEL_ADDRESS}" ]; then
+    VLLM_ARGS+=("--data-parallel-address" "${DATA_PARALLEL_ADDRESS}")
+fi
+
+if [ -n "${DATA_PARALLEL_RPC_PORT}" ]; then
+    VLLM_ARGS+=("--data-parallel-rpc-port" "${DATA_PARALLEL_RPC_PORT}")
+fi
+
+if [ "${HEADLESS}" = "true" ]; then
+    VLLM_ARGS+=("--headless")
+fi
+
+if [ -n "${DATA_PARALLEL_START_RANK}" ]; then
+    VLLM_ARGS+=("--data-parallel-start-rank" "${DATA_PARALLEL_START_RANK}")
+fi
+
 # Reasoning parser for thinking models
 if [ -n "${REASONING_PARSER}" ]; then
     VLLM_ARGS+=("--reasoning-parser" "${REASONING_PARSER}")
