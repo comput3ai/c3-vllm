@@ -140,6 +140,10 @@ if [ -n "${DATA_PARALLEL_SIZE}" ]; then
     VLLM_ARGS+=("--data-parallel-size" "${DATA_PARALLEL_SIZE}")
 fi
 
+if [ -n "${DATA_PARALLEL_SIZE_LOCAL}" ]; then
+    VLLM_ARGS+=("--data-parallel-size-local" "${DATA_PARALLEL_SIZE_LOCAL}")
+fi
+
 if [ "${ENABLE_EXPERT_PARALLEL}" = "true" ]; then
     VLLM_ARGS+=("--enable-expert-parallel")
 fi
