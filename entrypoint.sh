@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Optional startup delay (useful for multi-node coordination)
+if [ -n "${STARTUP_DELAY}" ]; then
+    echo "Sleeping for ${STARTUP_DELAY} seconds before startup"
+    sleep "${STARTUP_DELAY}"
+fi
+
 # Handle empty HF_TOKEN
 if [ -z "${HF_TOKEN:-}" ]; then
     unset HF_TOKEN
