@@ -235,6 +235,11 @@ fi
 # Add any additional arguments passed to the container
 VLLM_ARGS+=("$@")
 
-# Execute vLLM server
-echo "Starting vLLM server with arguments: ${VLLM_ARGS[@]}"
-exec vllm "${VLLM_ARGS[@]}"
+# Execute vLLM server or custom command
+if [ -n "${C3_VLLM_COMMAND}" ]; then
+    echo "Custom command override: ${C3_VLLM_COMMAND}"
+    exec bash -c "${C3_VLLM_COMMAND}"
+else
+    echo "Starting vLLM server with arguments: ${VLLM_ARGS[@]}"
+    exec vllm "${VLLM_ARGS[@]}"
+fi
