@@ -62,10 +62,6 @@ if [ -n "${MAX_NUM_BATCHED_TOKENS}" ]; then
     VLLM_ARGS+=("--max-num-batched-tokens" "${MAX_NUM_BATCHED_TOKENS}")
 fi
 
-if [ -n "${TENSOR_PARALLEL_SIZE}" ]; then
-    VLLM_ARGS+=("--tensor-parallel-size" "${TENSOR_PARALLEL_SIZE}")
-fi
-
 if [ -n "${GPU_MEMORY_UTILIZATION}" ]; then
     VLLM_ARGS+=("--gpu-memory-utilization" "${GPU_MEMORY_UTILIZATION}")
 fi
@@ -80,14 +76,6 @@ fi
 
 if [ -n "${QUANTIZATION}" ]; then
     VLLM_ARGS+=("--quantization" "${QUANTIZATION}")
-fi
-
-if [ -n "${DISTRIBUTED_EXECUTOR_BACKEND}" ]; then
-    VLLM_ARGS+=("--distributed-executor-backend" "${DISTRIBUTED_EXECUTOR_BACKEND}")
-fi
-
-if [ -n "${PIPELINE_PARALLEL_SIZE}" ]; then
-    VLLM_ARGS+=("--pipeline-parallel-size" "${PIPELINE_PARALLEL_SIZE}")
 fi
 
 # Boolean flags - only add if explicitly set to true
@@ -141,65 +129,70 @@ if [ -n "${API_KEY}" ]; then
     VLLM_ARGS+=("--api-key" "${API_KEY}")
 fi
 
-# Expert parallelism for MoE models
-if [ -n "${DATA_PARALLEL_SIZE}" ]; then
-    VLLM_ARGS+=("--data-parallel-size" "${DATA_PARALLEL_SIZE}")
-fi
-
-if [ -n "${DATA_PARALLEL_SIZE_LOCAL}" ]; then
-    VLLM_ARGS+=("--data-parallel-size-local" "${DATA_PARALLEL_SIZE_LOCAL}")
-fi
-
-if [ "${ENABLE_EXPERT_PARALLEL}" = "true" ]; then
-    VLLM_ARGS+=("--enable-expert-parallel")
-fi
-
-# Handle data parallel configuration directly from environment variables
-if [ -n "${DATA_PARALLEL_ADDRESS}" ]; then
-    VLLM_ARGS+=("--data-parallel-address" "${DATA_PARALLEL_ADDRESS}")
-fi
-
-if [ -n "${DATA_PARALLEL_RPC_PORT}" ]; then
-    VLLM_ARGS+=("--data-parallel-rpc-port" "${DATA_PARALLEL_RPC_PORT}")
-fi
-
-if [ "${HEADLESS}" = "true" ]; then
-    VLLM_ARGS+=("--headless")
-fi
-
-if [ -n "${DATA_PARALLEL_START_RANK}" ]; then
-    VLLM_ARGS+=("--data-parallel-start-rank" "${DATA_PARALLEL_START_RANK}")
-fi
-
 # Reasoning parser for thinking models
 if [ -n "${REASONING_PARSER}" ]; then
     VLLM_ARGS+=("--reasoning-parser" "${REASONING_PARSER}")
 fi
 
-# Multi-node support
-if [ -n "${NODE_MASTER_IP}" ] && [ -n "${NODE_IP}" ]; then
-    echo "Multi-node mode detected"
+# Determine parallelization mode: Data Parallel vs Tensor Parallel
+if [ -n "${DATA_PARALLEL_ADDRESS}" ]; then
+    echo "=========================================="
+    echo "DATA PARALLEL MODE"
+    echo "=========================================="
+    echo "Data parallel address: ${DATA_PARALLEL_ADDRESS}"
+
+    # Data parallel configuration
+    VLLM_ARGS+=("--data-parallel-address" "${DATA_PARALLEL_ADDRESS}")
+
+    if [ -n "${DATA_PARALLEL_SIZE}" ]; then
+        VLLM_ARGS+=("--data-parallel-size" "${DATA_PARALLEL_SIZE}")
+    fi
+
+    if [ -n "${DATA_PARALLEL_SIZE_LOCAL}" ]; then
+        VLLM_ARGS+=("--data-parallel-size-local" "${DATA_PARALLEL_SIZE_LOCAL}")
+    fi
+
+    if [ "${ENABLE_EXPERT_PARALLEL}" = "true" ]; then
+        VLLM_ARGS+=("--enable-expert-parallel")
+    fi
+
+    if [ -n "${DATA_PARALLEL_RPC_PORT}" ]; then
+        VLLM_ARGS+=("--data-parallel-rpc-port" "${DATA_PARALLEL_RPC_PORT}")
+    fi
+
+    if [ "${HEADLESS}" = "true" ]; then
+        VLLM_ARGS+=("--headless")
+        echo "Running in headless mode (worker node)"
+    fi
+
+    if [ -n "${DATA_PARALLEL_START_RANK}" ]; then
+        VLLM_ARGS+=("--data-parallel-start-rank" "${DATA_PARALLEL_START_RANK}")
+        echo "Data parallel start rank: ${DATA_PARALLEL_START_RANK}"
+    fi
+
+elif [ -n "${NODE_MASTER_IP}" ] && [ -n "${NODE_IP}" ]; then
+    echo "=========================================="
+    echo "TENSOR PARALLEL MODE (Ray-based)"
+    echo "=========================================="
     echo "This node IP: ${NODE_IP}"
     echo "Master node IP: ${NODE_MASTER_IP}"
 
-    # All nodes get data-parallel-address
-    VLLM_ARGS+=("--data-parallel-address" "${NODE_MASTER_IP}")
+    # Tensor parallel configuration
+    if [ -n "${TENSOR_PARALLEL_SIZE}" ]; then
+        VLLM_ARGS+=("--tensor-parallel-size" "${TENSOR_PARALLEL_SIZE}")
+    fi
 
-    # Add RPC port if configured
-    if [ -n "${DATA_PARALLEL_RPC_PORT}" ]; then
-        VLLM_ARGS+=("--data-parallel-rpc-port" "${DATA_PARALLEL_RPC_PORT}")
+    if [ -n "${DISTRIBUTED_EXECUTOR_BACKEND}" ]; then
+        VLLM_ARGS+=("--distributed-executor-backend" "${DISTRIBUTED_EXECUTOR_BACKEND}")
+    fi
+
+    if [ -n "${PIPELINE_PARALLEL_SIZE}" ]; then
+        VLLM_ARGS+=("--pipeline-parallel-size" "${PIPELINE_PARALLEL_SIZE}")
     fi
 
     if [ "${NODE_IP}" != "${NODE_MASTER_IP}" ]; then
         # Worker node configuration
         echo "Configuring as worker node"
-        VLLM_ARGS+=("--headless")
-
-        # Calculate start rank: (node_num - 1) * 8
-        NODE_NUM=$(echo "${NODE_IP}" | cut -d'.' -f4)
-        START_RANK=$(( (NODE_NUM - 1) * 8 ))
-        VLLM_ARGS+=("--data-parallel-start-rank" "${START_RANK}")
-        echo "Worker start rank: ${START_RANK}"
 
         # Wait for master node to be ready
         echo "Waiting for master node at ${NODE_MASTER_IP} to be ready..."
@@ -225,9 +218,24 @@ if [ -n "${NODE_MASTER_IP}" ] && [ -n "${NODE_IP}" ]; then
     else
         echo "Configuring as master node"
     fi
-elif [ -n "${NODE_MASTER_IP}" ] || [ -n "${NODE_IP}" ]; then
-    echo "Error: Both NODE_MASTER_IP and NODE_IP must be set for multi-node, or neither"
-    exit 1
+
+else
+    echo "=========================================="
+    echo "SINGLE NODE MODE"
+    echo "=========================================="
+
+    # Single node can still use tensor parallelism
+    if [ -n "${TENSOR_PARALLEL_SIZE}" ]; then
+        VLLM_ARGS+=("--tensor-parallel-size" "${TENSOR_PARALLEL_SIZE}")
+    fi
+
+    if [ -n "${DISTRIBUTED_EXECUTOR_BACKEND}" ]; then
+        VLLM_ARGS+=("--distributed-executor-backend" "${DISTRIBUTED_EXECUTOR_BACKEND}")
+    fi
+
+    if [ -n "${PIPELINE_PARALLEL_SIZE}" ]; then
+        VLLM_ARGS+=("--pipeline-parallel-size" "${PIPELINE_PARALLEL_SIZE}")
+    fi
 fi
 
 # Don't pass --download-dir when using a local model path
