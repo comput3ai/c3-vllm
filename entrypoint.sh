@@ -112,10 +112,10 @@ fi
 if [ -n "${CHAT_TEMPLATE}" ]; then
     if [[ "${CHAT_TEMPLATE}" =~ ^https?:// ]]; then
         echo "Downloading chat template from URL: ${CHAT_TEMPLATE}"
-        wget -O /app/examples/chat_template.jinja "${CHAT_TEMPLATE}"
+        wget -O /tmp/chat_template.jinja "${CHAT_TEMPLATE}"
         if [ $? -eq 0 ]; then
-            echo "Successfully downloaded chat template to /app/examples/chat_template.jinja"
-            VLLM_ARGS+=("--chat-template" "/app/examples/chat_template.jinja")
+            echo "Successfully downloaded chat template to /tmp/chat_template.jinja"
+            VLLM_ARGS+=("--chat-template" "/tmp/chat_template.jinja")
         else
             echo "Failed to download chat template from URL, proceeding without custom template"
         fi
