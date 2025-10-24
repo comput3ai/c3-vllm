@@ -112,14 +112,15 @@ fi
 if [ -n "${CHAT_TEMPLATE}" ]; then
     if [[ "${CHAT_TEMPLATE}" =~ ^https?:// ]]; then
         echo "Downloading chat template from URL: ${CHAT_TEMPLATE}"
-        wget -O /tmp/chat_template.jinja "${CHAT_TEMPLATE}"
-        if [ $? -eq 0 ]; then
-            echo "Successfully downloaded chat template to /tmp/chat_template.jinja"
+        # Download to /tmp using curl (consistent with Dockerfile patching approach)
+        if curl -fsSL "${CHAT_TEMPLATE}" -o /tmp/chat_template.jinja; then
+            echo "✅ Successfully downloaded chat template to /tmp/chat_template.jinja"
             VLLM_ARGS+=("--chat-template" "/tmp/chat_template.jinja")
         else
-            echo "Failed to download chat template from URL, proceeding without custom template"
+            echo "⚠️  Failed to download chat template from URL, proceeding without custom template"
         fi
     else
+        # Use local file path or inline template
         VLLM_ARGS+=("--chat-template" "${CHAT_TEMPLATE}")
     fi
 fi
