@@ -1,0 +1,6 @@
+# Use our c3-vllm:latest as base
+FROM ghcr.io/comput3ai/c3-vllm:latest
+
+# Install minimax-specific dependencies: triton-kernels and vllm nightly
+RUN uv pip install --system 'triton-kernels @ git+https://github.com/triton-lang/triton.git@v3.5.0#subdirectory=python/triton_kernels' \
+    vllm --extra-index-url https://wheels.vllm.ai/nightly --prerelease=allow
