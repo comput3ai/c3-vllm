@@ -293,10 +293,78 @@ This uses:
 
 ## 🔨 Building Locally
 
+### Quick Build (Standard Images)
+
+For standard vLLM releases:
+
 ```bash
 git clone https://github.com/comput3ai/c3-vllm
 cd c3-vllm
-docker build -t c3-vllm .
+docker build -t c3-vllm:latest .
+```
+
+### Building All Image Variants
+
+We provide three image variants with different vLLM versions:
+
+```bash
+./build-all.sh
+```
+
+This builds:
+- **c3-vllm:latest** - Based on upstream `vllm/vllm-openai:latest` (V1 engine)
+- **c3-vllm:v0** - Based on upstream `vllm/vllm-openai:v0.10.2` (V0 engine, for compatibility)
+- **c3-vllm:minimax** - Custom build from source with MiniMax M2 support (requires triton-kernels)
+
+### Image Architecture
+
+Our build system consists of:
+
+#### Dockerfiles
+
+- **Dockerfile** - Parameterized base (takes `BASE_IMAGE` arg), adds C3 customizations:
+  - Custom entrypoint wrapper for model download
+  - Additional dependencies (tiktoken, python-dotenv, etc.)
+  - Runtime chat template download support
+
+- **Dockerfile.minimax** - Patches vLLM with triton-kernels for MiniMax M2 model support
+
+- **Dockerfile.v0** - Legacy v0 build (kept for reference)
+
+#### Build Scripts
+
+- **build-all.sh** - Comprehensive build of all variants:
+  1. Builds `vllm:git` from upstream source (submodule)
+  2. Patches to create `vllm:minimax` with triton-kernels
+  3. Builds all c3-vllm variants (latest, v0, minimax)
+
+- **build-minimax.sh** - Targeted build for just the minimax variant (faster if you already have other variants)
+
+#### vLLM Submodule
+
+The repository includes the upstream vLLM as a git submodule at `vllm/`. This allows us to:
+- Build bleeding-edge vLLM from source
+- Apply custom patches (e.g., triton-kernels for MiniMax M2)
+- Track specific upstream commits
+
+To update the submodule:
+```bash
+git submodule update --remote vllm
+```
+
+### Building Individual Variants
+
+You can build specific variants by passing `BASE_IMAGE`:
+
+```bash
+# Build with custom base
+docker build -t c3-vllm:custom \
+  --build-arg BASE_IMAGE=vllm/vllm-openai:v0.11.0 \
+  -f Dockerfile \
+  .
+
+# Build minimax variant only
+./build-minimax.sh
 ```
 
 ## 🛠️ How It Works
