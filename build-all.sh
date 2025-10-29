@@ -1,7 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
+# Detect CPU thread count for optimal build parallelism
+CPU_THREADS=$(nproc)
+NVCC_THREADS=$((CPU_THREADS / 4))
+# Ensure nvcc_threads is at least 2
+if [ ${NVCC_THREADS} -lt 2 ]; then
+    NVCC_THREADS=2
+fi
 echo "🔨 Building all c3-vllm image variants..."
+echo "💻 Detected ${CPU_THREADS} CPU threads - will use max_jobs=${CPU_THREADS}, nvcc_threads=${NVCC_THREADS}"
 echo ""
 
 # Step 0: Clone vllm if not present
@@ -15,11 +23,15 @@ fi
 
 # Step 1: Build upstream vLLM from git
 echo "📦 Step 1/4: Building upstream vLLM from source → vllm:git"
+echo "   Using max_jobs=${CPU_THREADS}, nvcc_threads=${NVCC_THREADS}"
 echo "   (this will take a while...)"
 cd vllm
-docker build \
+DOCKER_BUILDKIT=1 docker build \
+    --target vllm-openai \
     -t vllm:git \
     -f docker/Dockerfile \
+    --build-arg max_jobs=${CPU_THREADS} \
+    --build-arg nvcc_threads=${NVCC_THREADS} \
     .
 cd ..
 echo "✅ vllm:git complete"
