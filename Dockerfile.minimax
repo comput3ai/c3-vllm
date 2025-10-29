@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=vllm:git
+ARG BASE_IMAGE=c3-vllm:nightly
 FROM ${BASE_IMAGE}
 
 # Install minimax-specific dependencies: triton-kernels and vllm nightly
