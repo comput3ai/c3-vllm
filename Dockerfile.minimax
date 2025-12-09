@@ -1,6 +1,0 @@
-ARG BASE_IMAGE=c3-vllm:nightly
-FROM ${BASE_IMAGE}
-
-# Install minimax-specific dependencies: triton-kernels and vllm nightly
-RUN uv pip install --system 'triton-kernels @ git+https://github.com/triton-lang/triton.git@v3.5.0#subdirectory=python/triton_kernels' \
-    vllm --extra-index-url https://wheels.vllm.ai/nightly --prerelease=allow
